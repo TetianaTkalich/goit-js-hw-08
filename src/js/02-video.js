@@ -1,4 +1,4 @@
-  import Vimeo from '@vimeo/player';
+ import Vimeo from '@vimeo/player';
   var _ = require('lodash');
 
   const iframe = document.querySelector('iframe');
