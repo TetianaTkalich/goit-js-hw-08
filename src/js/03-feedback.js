@@ -1,65 +1,40 @@
-const _ = require('lodash');
+import throttle from 'lodash.throttle';
 
-const feedbackForm = document.querySelector('.feedback-form');
-const LOCAL_STORAGE_KEY = 'feedback-form-state';
+const refs = {
+  form: document.querySelector('.feedback-form'),
+  input: document.querySelector('.feedback-form input'),
+  textarea: document.querySelector('.feedback-form textarea'),
+};
+const KEY_STORAGE = 'feedback-form-state';
 
-// Объект с текущим состоянием формы
-let feedbackState = {};
+refs.form.addEventListener('input', throttle(onInputsChange), 500);
+refs.form.addEventListener('submit', onSubmit);
 
-// Загрузка сохраненного состояния формы при запуске страницы при условии что не будет применена очистка локального хранилища
+loadStorageData();
 
-const savedFeedbackState = localStorage.getItem(LOCAL_STORAGE_KEY);
-if (savedFeedbackState) {
-  feedbackState = JSON.parse(savedFeedbackState);
+function onInputsChange() {
+  localStorage.setItem(
+    KEY_STORAGE,
+    JSON.stringify({ email: refs.input.value, message: refs.textarea.value })
+  );
 }
 
+function onSubmit(event) {
+  event.preventDefault();
+  console.log({ email: refs.input.value, message: refs.textarea.value });
+  event.target.reset();
+  localStorage.removeItem(KEY_STORAGE);
+}
 
-// Функция для записи текущего состояния формы в локальное хранилище
-const saveFeedbackStateToLocalStorage = _.throttle(function () {
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(feedbackState));
-}, 500);
-
-// Oбработкa события input для локального хранилища....
-feedbackForm.addEventListener('input', event => {
-  if (event.target.matches('input, textarea')) {
-    const name = event.target.getAttribute('name');
-    feedbackState[name] = event.target.value.trim();
-    saveFeedbackStateToLocalStorage();
+function loadStorageData() {
+  try {
+    const savedData = localStorage.getItem(KEY_STORAGE);
+    if (savedData) {
+      let { email, message } = JSON.parse(savedData);
+      refs.input.value = email;
+      refs.textarea.value = message;
+    }
+  } catch (error) {
+    console.error(error.message);
   }
-});
-
-
-// Функция обработки события submit на форме
-
-feedbackForm.addEventListener('submit', onFeedbackFormSubmit);
-
-//  коллбек функция на сабмит
- function onFeedbackFormSubmit(event) {
-   event.preventDefault();
-
-   // Получение элементов формы по их атрибуту name
-   const emailInput = feedbackForm.elements['email'];
-   const messageInput = feedbackForm.elements['message'];
-
-   // Проверка на заполнение всех полей формы
-   if (!emailInput.value.trim() || !messageInput.value.trim()) {
-     alert('Please fill all fields');
-     return;
-   }
-
-   // Получение данных формы через объект FormData
-   const formData = new FormData(event.target);
-
-   // Обновление объекта feedbackState данными из формы
-   for (const [key, value] of formData) {
-     feedbackState[key] = value.trim();
-   }
-
-   // Вывод обьекта в консоль
-   console.log('Отправленное сообщение:', feedbackState);
-
-   // Очистка локального хранилища, сброс формы и объекта feedbackState
-   localStorage.removeItem(LOCAL_STORAGE_KEY);
-   feedbackForm.reset();
-   feedbackState = {};
- }
+}
